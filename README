@@ -1,0 +1,33 @@
+
+#Kurz gesagt
+
+A buddy running a small company once asked me to build a microservice that would enable his customers manage files via his website.
+Hence the dropwizard-based Archion-microservice was born.
+
+The users' files are stored on a cloud service in the long term (AWS here), and on a local machine in the short term for faster retrieval.
+
+We have three categories of files:
+1. Normal, which are deleted after a year of not being accessed.
+2. Temporary, which are forcibly deleted after a month
+3. Archives, which can only be manually deleted.
+
+There is a postgres database containing the metadata of the files, including UUIDs, owner's id, last access dates, and more.
+
+A scheduled function running once a day, removes the files from both the local machine and the cloud service depending on the category.
+Another scheduled function removes from the local machine all files that have not been accessed in the last two days.
+
+
+##IMPORTANT NOTES:
+1. The version here includes no authentication/authorization.
+
+=======================================
+
+#Running in IntelliJ:
+All you need is a configuration pointing the ArchionApplication class as an entry, and "server config.yml" in the CLI arguments.
+
+One ought to fill the config.yml with one's preferred values.
+
+Make sure the SDK is Java 9 or later, as there are functionalities not supported by Java 8.
+It has been tested and runs fine with Oracle JDK 11.0.9
+
+=======================================

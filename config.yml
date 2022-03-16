@@ -1,0 +1,59 @@
+# Server settings
+server:
+  # Default application port
+  applicationConnectors:
+    - type: http
+      port: 8012
+
+  # Default admin port
+  adminConnectors:
+    - type: http
+      port: 8812
+
+  # Correct timezone for the requestlog
+  requestLog:
+    type: classic
+    timeZone: "Europe/Stockholm"
+
+# Correct timezone for the consoleoutput
+logging:
+  appenders:
+    - type: console
+      timeZone: "Europe/Stockholm"
+
+# Base Database Server
+base:
+  server: localhost:5435
+  name: postgres
+  username: postgres
+  password: postgres
+
+
+# Jedis settings
+jedis:
+  server: 127.0.0.1
+
+# Language
+language:
+  base: sv_SE
+
+
+# Log system
+logs:
+  test:
+    target: FILE
+    levels: INFO DEBUG WARNING ERROR
+  moretest:
+    target: DATABASE
+    levels: WARNING ERROR
+
+logsettings:
+  logfilemaxsize: 100   #This is in megabytes
+
+amazon:
+  accesskey: dummy
+  secretkey: example
+
+localmachine:
+  localfilelocation: C:\workspace-exper\
+
