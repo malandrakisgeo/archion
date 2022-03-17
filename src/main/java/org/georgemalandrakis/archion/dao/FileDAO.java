@@ -143,7 +143,7 @@ public class FileDAO extends AbstractDAO {
         } else {
             return null;
         }
-
+/*
         try {
             connection = this.getConnection();
 
@@ -161,7 +161,7 @@ public class FileDAO extends AbstractDAO {
             sqlException.printStackTrace();
             return null;
         }
-
+*/
         return fileList;
     }
 
@@ -196,6 +196,7 @@ public class FileDAO extends AbstractDAO {
 
         } catch (SQLException sqlException) {
             archionRequest.getResponseObject().addDebug("SQLException", sqlException.getMessage());
+            archionRequest.getResponseObject().addError("Error", ArchionConstants.FAILED_REMOVAL_FROM_DB);
         }
 
         if (retVal > 0 && !archionRequest.getResponseObject().hasType(ArchionNotification.NotificationType.error)) {

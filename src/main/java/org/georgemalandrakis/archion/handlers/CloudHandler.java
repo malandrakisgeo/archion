@@ -60,7 +60,6 @@ public class CloudHandler {
 
 
 	public boolean removeFile(String fileid) {
-		ObjectMetadata metadata = new ObjectMetadata();
 
 		if (fileid != null) {
 			try {

@@ -29,7 +29,7 @@ public class FileService {
         this.localMachineHandler = machineHandler;
     }
 
-    public ArchionRequest createNewFile(ArchionRequest archionRequest, String purpose, String filename, File file) throws Exception{
+    public ArchionRequest createNewFile(ArchionRequest archionRequest, String purpose, String filename, File file) throws Exception {
         UserFile userFile = new UserFile();
         Calendar cal = Calendar.getInstance();
 
@@ -47,8 +47,8 @@ public class FileService {
 
         switch (purpose) {
             case "temporary": //Temporary files are forcibly deleted after a month by default
-                userFile.setOriginalfilename(originalFilename+".temp");
-                cal.add(Calendar.MONTH,1);
+                userFile.setOriginalfilename(originalFilename + ".temp");
+                cal.add(Calendar.MONTH, 1);
                 // temporary files
                 userFile.setFiletype(ArchionConstants.FILES_TEMP_FILETYPE);
                 break;
@@ -61,16 +61,17 @@ public class FileService {
 
             case "test": //Test files are deleted after 5 minutes
                 userFile.setOriginalfilename(originalFilename);
-                cal.add(Calendar.MINUTE,5);
+                cal.add(Calendar.MINUTE, 5);
                 userFile.setFiletype(ArchionConstants.FILES_TEST_FILETYPE);
                 break;
 
             case "save": //To be deleted in a year, if they are not used again in the meanwhile.
             default:
                 userFile.setOriginalfilename(originalFilename);
-                cal.add(Calendar.YEAR,1);
+                cal.add(Calendar.YEAR, 1);
                 userFile.setFiletype(ArchionConstants.FILES_DEFAULT_FILETYPE);
-                break;        }
+                break;
+        }
 
         UserFile tempUserFile;
 
@@ -78,23 +79,17 @@ public class FileService {
         tempUserFile = this.createAndUploadbyInputStream(archionRequest, userFile, new FileInputStream(file));
 
         if (tempUserFile == null) {
-            userFile.setFiletype(ArchionConstants.FILED_UPLOAD_FILED);
+            userFile.setFiletype(ArchionConstants.FILE_UPLOAD_FILED);
             userFile = this.update(archionRequest, userFile);
-            archionRequest.getResponseObject().addError("UploadError", ArchionConstants.FAILED_UPLOAD_MESSAGE);
+            archionRequest.getResponseObject().addError("UploadError", ArchionConstants.FAILED_UPLOAD_MESSAGE, ArchionConstants.FAILED_UPLOAD_MESSAGE_NUM);
             return archionRequest;
-            //throw new FileDBException();
         }
-
-        // If we got this far, we successfully stored the file. YAY!
-
 
         userFile.setLastmodified(Timestamp.valueOf(String.valueOf(System.currentTimeMillis())));
 
         userFile = this.update(archionRequest, tempUserFile);
         if (userFile != null) {
             archionRequest.getResponseObject().addSuccess("Success", ArchionConstants.UPLOAD_SUCCESSFUL_MESSAGE);
-        } else {
-            archionRequest.getResponseObject().addError("Error", ArchionConstants.FAILED_UPDATE_MESSAGE);
         }
 
         return archionRequest;
@@ -114,15 +109,28 @@ public class FileService {
 
     public UserFile createAndUploadbyInputStream(ArchionRequest archionRequest, UserFile userFile, InputStream fileinputStream) {
         if (userFile != null && fileinputStream != null) {
-            userFile = createDBEntry(userFile);
-
-            if (cloudHandler.uploadFile(fileinputStream, userFile.getLocalfilename()) && localMachineHandler.storeFile(userFile, fileinputStream)) {
-                return userFile;
+            userFile = createDBEntry(userFile); //We first store the metadata in the DB, and then the file itself
+            if (userFile == null) {
+                archionRequest.getResponseObject().addError("Error", ArchionConstants.FAILED_TO_ADD_TO_DB, ArchionConstants.FAILED_TO_ADD_TO_DB_NUM);
+                return null;
             }
+
+            if (localMachineHandler.storeFile(userFile, fileinputStream)) {
+                userFile.setPhase(UserFile.Phase.LOCAL_MACHINE); //If something goes wrong when uploading to the cloud, this lets ut know that it was successfully stored in
+                // the local machine.
+
+                if (cloudHandler.uploadFile(fileinputStream, userFile.getLocalfilename())) {
+                    userFile.setPhase(UserFile.Phase.CLOUD);
+                    return userFile;
+                } else {
+                    archionRequest.getResponseObject().addError("Error", ArchionConstants.FAILED_UPLOAD_TO_CLOUD_INFO, ArchionConstants.FAILED_UPLOAD_TO_CLOUD_NUM);
+                    return null;
+                }
+            }
+            archionRequest.getResponseObject().addError("Error", ArchionConstants.ERROR_SAVING_LOCALLY, ArchionConstants.ERROR_SAVING_LOCALLY_NUM);
         }
         return null;
     }
-
 
 
     public UserFile createDBEntry(UserFile userFile) {
@@ -131,19 +139,52 @@ public class FileService {
         }
         userFile.setCreated(Timestamp.valueOf(String.valueOf(System.currentTimeMillis())));
         userFile.setFileextension(getFileExtensionFromFileName(userFile.getOriginalfilename()));
+        userFile.setPhase(UserFile.Phase.DB);
         //userFile = fileDao.create(archionRequest, userFile); //TODO: Uncomment
         return userFile;
     }
 
+    /*
+        The update function is used in two cases:
+        1. To add the timestamp of the creation after the successful creation in the cloud and the local machine
+        2. To store information about the procedure phase during which an error occurred (e.g. while uploading to the cloud).
+     */
     public UserFile update(ArchionRequest archionRequest, UserFile userFile) {
-       // return fileDao.update(archionRequest, userFile); TODO: Uncomment
+        try{
+            // return fileDao.update(archionRequest, userFile); TODO: Uncomment
+        }catch (Exception e){
+            e.printStackTrace();
+            archionRequest.getResponseObject().addError("Error", ArchionConstants.FAILED_UPDATE_MESSAGE, ArchionConstants.FAILED_UPDATE_NUM);
+            archionRequest.getResponseObject().addInformation("File: ", userFile.toJSON()); //The application needs info about the file and its' procedure phase
+
+        }
         return userFile;
     }
 
 
+    public boolean delete(ArchionRequest archionRequest, UserFile userFile) {
+        if (archionRequest.getUserObject().getId() != userFile.getFileid()) {//TODO: See if we really need it. The requests are sent
+            // by an application and supposedly cannot be manipulated by the user, so such controls may be unnecessary here.
+            return (this.removeFileFromSystem(archionRequest, userFile) && fileDao.delete(archionRequest, userFile.getFileid()) > 0); //The metadata will not be removed
+            // from the db if the file itself is not removed from the cloud service & the local machine first
+        }
+        archionRequest.getResponseObject().addError("Error", ArchionConstants.USER_NOT_AUTHORIZED_TO_DELETE_FILE, ArchionConstants.USER_NOT_AUTHORIZED_TO_DELETE_FILE_NUM);
+        return false;
+    }
 
-    public Integer delete(ArchionRequest archionRequest, UserFile userFile) {
-        return fileDao.delete(archionRequest, userFile.getFileid());
+    //Removes the file itself from the machine and the cloud service. The removal of its' metadata in the db is another function
+    private boolean removeFileFromSystem(ArchionRequest archionRequest, UserFile userFile) {
+        if (this.localMachineHandler.deleteFile(userFile.getFileid())) {
+            if (this.cloudHandler.removeFile(userFile.getFileid())) {
+                return true;
+            } else {
+                archionRequest.getResponseObject().addError("Error", ArchionConstants.FAILED_REMOVAL_FROM_CLOUD_INFO, ArchionConstants.FAILED_REMOVAL_FROM_CLOUD_NUM);
+                return false;
+            }
+        } else {
+            archionRequest.getResponseObject().addError("Error", ArchionConstants.FAILED_REMOVAL_FROM_LOCAL_MACHINE_INFO, ArchionConstants.FAILED_REMOVAL_FROM_LOCAL_MACHINE_NUM);
+            return false;
+        }
     }
 
     public UserFile retrieveFileMetadata(ArchionRequest archionRequest, String id) {

@@ -21,23 +21,18 @@ import java.util.UUID;
 @Consumes({MediaType.MULTIPART_FORM_DATA})
 public class UploadResource extends AbstractResource {
     FileService fileService;
-    CloudHandler cloudHandler;
-    ArchionRequest archionRequest;
 
-    public UploadResource(FileService fileService, CloudHandler cloudHandler) {
+    public UploadResource(FileService fileService) {
         this.fileService = fileService;
-        this.cloudHandler = cloudHandler;
-        archionRequest = new ArchionRequest();
     }
 
     @GET
     public Response test() {
-        return buildResponse(archionRequest, Response.Status.OK, "Hurray!");
+        return buildResponse(null, Response.Status.OK, "Hurray!");
     }
 
     @POST
     @Timed
-    //originally @Valid  org.glassfish.jersey.media.multipart.FormDataMultiPart
     public Response create(@FormDataParam("req") ArchionRequest archionRequest,
                            @Valid @FormDataParam("purpose") String purpose,
                            @Valid @FormDataParam("filename") String filename,

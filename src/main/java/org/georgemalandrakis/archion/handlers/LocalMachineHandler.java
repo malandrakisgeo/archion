@@ -33,7 +33,7 @@ public class LocalMachineHandler {
     }
 
     public Boolean deleteFile(String id) {
-        return null;
+        return null; //TODO implement
     }
 
 }

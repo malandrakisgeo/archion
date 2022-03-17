@@ -109,7 +109,7 @@ public class ArchionApplication extends Application<Config> implements JobConfig
 
         //Resources
         environment.jersey().register(new DownloadResource(fileService));
-        environment.jersey().register(new UploadResource(fileService, cloudHandler));
+        environment.jersey().register(new UploadResource(fileService));
 
 
         /*

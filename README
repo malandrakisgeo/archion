@@ -16,9 +16,15 @@ There is a postgres database containing the metadata of the files, including UUI
 A scheduled function running once a day, removes the files from both the local machine and the cloud service depending on the category.
 Another scheduled function removes from the local machine all files that have not been accessed in the last two days.
 
+The requests are not being sent directly by the user, but by another application. Hence that all necessary debug messages
+are written in the requests.
+
 
 ##IMPORTANT NOTES:
 1. The version here includes no authentication/authorization.
+2. The requests are not being sent directly by the user, but by another application. Hence that all necessary debug messages
+   are written in the requests.
+
 
 =======================================
 

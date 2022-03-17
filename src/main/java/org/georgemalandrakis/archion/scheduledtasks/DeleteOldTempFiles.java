@@ -1,11 +1,13 @@
 package org.georgemalandrakis.archion.scheduledtasks;
 
 import io.dropwizard.jobs.Job;
+import io.dropwizard.jobs.annotations.DelayStart;
 import io.dropwizard.jobs.annotations.Every;
 import org.georgemalandrakis.archion.core.ArchionConstants;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 
+@DelayStart("15s")
 @Every("24h")
 public class DeleteOldTempFiles extends Job {
 

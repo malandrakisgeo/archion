@@ -1,7 +1,10 @@
 package org.georgemalandrakis.archion.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.sql.Timestamp;
 
@@ -43,6 +46,14 @@ public class UserFile {
 
 	@JsonProperty("FileExtension")
 	private String fileextension;
+
+	public enum Phase {
+		DB,
+		LOCAL_MACHINE,
+		CLOUD
+	}
+
+	private Phase phase;
 
 
 	public UserFile() {
@@ -144,5 +155,23 @@ public class UserFile {
 		this.fileextension = fileextension;
 	}
 
+	public Phase getPhase() {
+		return phase;
+	}
 
+	public void setPhase(Phase phase) {
+		this.phase = phase;
+	}
+
+	@JsonIgnore
+	public String toJSON() {
+		ObjectMapper mapper = new ObjectMapper();
+		String jsonString = "";
+		try {
+			jsonString = mapper.writeValueAsString(this);
+		} catch (JsonProcessingException e) {
+		}
+
+		return jsonString;
+	}
 }

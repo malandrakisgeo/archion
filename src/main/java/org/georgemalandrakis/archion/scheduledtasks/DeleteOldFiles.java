@@ -1,10 +1,13 @@
 package org.georgemalandrakis.archion.scheduledtasks;
 
 import io.dropwizard.jobs.Job;
+import io.dropwizard.jobs.annotations.DelayStart;
 import io.dropwizard.jobs.annotations.Every;
+import org.georgemalandrakis.archion.core.ArchionConstants;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 
+@DelayStart("15s")
 @Every("24h")
 public class DeleteOldFiles extends Job {
 
@@ -12,7 +15,7 @@ public class DeleteOldFiles extends Job {
 
     @Override
     public void doJob(JobExecutionContext jobExecutionContext) throws JobExecutionException {
-        deleteGeneral.runDelete("default"); //every 24h
+        deleteGeneral.runDelete(ArchionConstants.FILES_DEFAULT_FILETYPE); //every 24h
 
     }
 
