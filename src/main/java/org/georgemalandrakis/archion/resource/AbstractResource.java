@@ -8,17 +8,15 @@ import java.util.Map;
 
 public abstract class AbstractResource {
 
-	public Response buildResponse(ArchionRequest archionRequest, Response.Status status) {
-		return buildResponse(archionRequest, status, false, null, null, null);
+	public Response buildResponse(ArchionResponse archionResponse, Response.Status status) {
+		return buildResponse(archionResponse, status, false, null, null, null);
 	}
 
-	public Response buildResponse(ArchionRequest archionRequest, Response.Status status, Object entity) {
-		return buildResponse(archionRequest, status, false, entity,  null, null);
+	public Response buildResponse(ArchionResponse archionResponse, Response.Status status, Object entity) {
+		return buildResponse(archionResponse, status, false, entity,  null, null);
 	}
 
-	public Response buildResponse(ArchionRequest archionRequest, Response.Status status, Boolean data, Object entity,  HashMap<String, Object> header, String mediaType) {
-		ArchionResponse archionResponse = archionRequest.getResponseObject();
-
+	public Response buildResponse(ArchionResponse archionResponse, Response.Status status, Boolean data, Object entity,  HashMap<String, Object> header, String mediaType) {
 		Response.ResponseBuilder responseBuilder = Response.status(status);
 		responseBuilder.type(mediaType);
 

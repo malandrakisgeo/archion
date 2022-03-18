@@ -1,8 +1,7 @@
 package org.georgemalandrakis.archion.handlers;
 
 import org.georgemalandrakis.archion.core.ConnectionManager;
-import org.georgemalandrakis.archion.model.UserFile;
-import redis.clients.jedis.util.IOUtils;
+import org.georgemalandrakis.archion.model.FileMetadata;
 
 import java.io.*;
 
@@ -13,12 +12,12 @@ public class LocalMachineHandler {
         localFileFolder = connectionObject.getLocalMachineFolder();
     }
 
-    public File retrieveFile(String id) {
+    public byte[] retrieveFile(String id) {
         return null;
     }
 
-    public boolean storeFile(UserFile userFile, InputStream data) {
-        String fileLocationAndName = this.localFileFolder + "-" + userFile.getOriginalfilename() + "-" + userFile.getFileid();
+    public boolean storeFile(FileMetadata fileMetadata, InputStream data) {
+        String fileLocationAndName = this.localFileFolder + "-" + fileMetadata.getOriginalfilename() + "-" + fileMetadata.getFileid();
         try {
             File file = new File(fileLocationAndName);
             OutputStream outStream = new FileOutputStream(file);
@@ -33,6 +32,10 @@ public class LocalMachineHandler {
     }
 
     public Boolean deleteFile(String id) {
+        /*
+            if file not found, return true!
+            It is assumed that it already was deleted by some automated procedure
+         */
         return null; //TODO implement
     }
 

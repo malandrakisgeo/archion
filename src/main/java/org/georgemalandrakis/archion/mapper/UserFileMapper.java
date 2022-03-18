@@ -1,14 +1,14 @@
 package org.georgemalandrakis.archion.mapper;
 
-import org.georgemalandrakis.archion.model.UserFile;
+import org.georgemalandrakis.archion.model.FileMetadata;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
 public class UserFileMapper {
 
-	public static UserFile map(ResultSet r) throws SQLException {
-		UserFile file = new UserFile();
+	public static FileMetadata map(ResultSet r) throws SQLException {
+		FileMetadata file = new FileMetadata();
 		file.setFileid(String.valueOf(r.getString("fileid")));
 		file.setOriginalfilename(r.getString("originalfilename"));
 		file.setLocalfilename(r.getString("localfilename"));

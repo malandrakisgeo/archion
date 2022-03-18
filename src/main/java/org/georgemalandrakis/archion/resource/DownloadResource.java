@@ -2,7 +2,7 @@ package org.georgemalandrakis.archion.resource;
 
 import com.codahale.metrics.annotation.Timed;
 import org.georgemalandrakis.archion.core.ArchionRequest;
-import org.georgemalandrakis.archion.model.UserFile;
+import org.georgemalandrakis.archion.model.FileMetadata;
 import org.georgemalandrakis.archion.service.FileService;
 
 import javax.ws.rs.*;
@@ -23,19 +23,19 @@ public class DownloadResource extends AbstractResource {
 	@GET
 	@Timed
 	public Response tryit() {
-		UserFile userFile = fileService.retrieveFileMetadata(new ArchionRequest(), "");
-		/*UserFile userFile = new UserFile();
-		userFile.setFileid("");
-		userFile.setLocalfilename("todo.zip"); */
-		userFile.setFileextension("");
+		FileMetadata fileMetadata = fileService.retrieveFileMetadata(new ArchionRequest(), "");
+		/*FileMetadata fileMetadata = new FileMetadata();
+		fileMetadata.setFileid("");
+		fileMetadata.setLocalfilename("todo.zip"); */
+		fileMetadata.setFileextension("");
 		byte[] file;
 
-		file = fileService.getFile(userFile);
+		file = fileService.getFile(fileMetadata);
 
-		HashMap<String, Object> header = this.createProperHeaders(userFile.getFileextension(), String.valueOf(file.length));
+		HashMap<String, Object> header = this.createProperHeaders(fileMetadata.getFileextension(), String.valueOf(file.length));
 
 
-		return buildResponse(new ArchionRequest(), Response.Status.OK, true, file,  header, null);
+		return buildResponse(null, Response.Status.OK, true, file,  header, null);
 
 	}
 
@@ -43,13 +43,12 @@ public class DownloadResource extends AbstractResource {
 	@Path("/{fileId}")
 	@Produces(MediaType.APPLICATION_JSON)
 	@Timed
-	public Response getfileInfo(ArchionRequest archionRequest, @PathParam("fileId") String fileId) {
-		UserFile userFile = fileService.retrieveFileMetadata(archionRequest, fileId);
+	public Response getfileInfo(ArchionRequest archionRequest) {
 
-		if (archionRequest.getUserObject().getId().equals(String.valueOf(userFile.getUserid()))) {
-			return buildResponse(archionRequest, Response.Status.OK, userFile);
+		if (archionRequest.getUserObject().getId().equals(String.valueOf(archionRequest.getInitialMetadata().getUserid()))) {
+			return buildResponse(archionRequest.getResponseObject(), Response.Status.OK);
 		}
-		return buildResponse(archionRequest, Response.Status.UNAUTHORIZED, userFile);
+		return buildResponse(archionRequest.getResponseObject(), Response.Status.UNAUTHORIZED);
 
 	}
 
@@ -58,20 +57,19 @@ public class DownloadResource extends AbstractResource {
 	@Path("/{fileId}/download")
 	@Produces({"application/pdf", "image/jpeg", "image/gif", "image/png", "application/octet-stream"})
 	@Timed
-	public Response downloadFile(ArchionRequest archionRequest, @PathParam("fileId") String fileId) {
+	public Response downloadFile(ArchionRequest archionRequest) {
 
-		UserFile userFile = fileService.retrieveFileMetadata(archionRequest, fileId);
 		byte[] file;
 
-		file = fileService.getFile(userFile);
+		file = fileService.getFile(archionRequest.getInitialMetadata());
 
-		HashMap<String, Object> header = this.createProperHeaders(userFile.getFileextension(), String.valueOf(file.length));
+		if (file!=null) {
+			HashMap<String, Object> header = this.createProperHeaders(archionRequest.getInitialMetadata().getFileextension(), String.valueOf(file.length));
 
-		if (archionRequest.getUserObject().getId().equals(String.valueOf(userFile.getUserid()))) {
-			return buildResponse(archionRequest, Response.Status.OK, true, file, header, null);
+			return buildResponse(archionRequest.getResponseObject(), Response.Status.OK, true, file, header, null);
 		}
 
-		return buildResponse(archionRequest, Response.Status.UNAUTHORIZED, true, file,  header, null);
+		return buildResponse(archionRequest.getResponseObject(), Response.Status.UNAUTHORIZED, true, file,  null, null);
 	}
 
 

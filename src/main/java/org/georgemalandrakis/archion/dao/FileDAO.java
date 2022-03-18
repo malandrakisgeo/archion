@@ -2,7 +2,7 @@ package org.georgemalandrakis.archion.dao;
 
 import org.georgemalandrakis.archion.core.ArchionConstants;
 import org.georgemalandrakis.archion.mapper.UserFileMapper;
-import org.georgemalandrakis.archion.model.UserFile;
+import org.georgemalandrakis.archion.model.FileMetadata;
 import org.georgemalandrakis.archion.core.ConnectionManager;
 import org.georgemalandrakis.archion.core.ArchionNotification;
 import org.georgemalandrakis.archion.core.ArchionRequest;
@@ -23,25 +23,25 @@ public class FileDAO extends AbstractDAO {
     }
 
 
-    public UserFile create(ArchionRequest archionRequest, UserFile userFile) {
+    public FileMetadata create(ArchionRequest archionRequest, FileMetadata fileMetadata) {
 
         try {
             connection = this.getConnection();
             Integer triesLeft = 5;
 
 
-            String newLocalFilename = (userFile.getLocalfilename() != null ? userFile.getLocalfilename() : userFile.getOriginalfilename() + "-" + userFile.getFileid());
-            userFile.setLocalfilename(newLocalFilename);
+            String newLocalFilename = (fileMetadata.getLocalfilename() != null ? fileMetadata.getLocalfilename() : fileMetadata.getOriginalfilename() + "-" + fileMetadata.getFileid());
+            fileMetadata.setLocalfilename(newLocalFilename);
 
 
             PreparedStatement statement = connection.prepareStatement("INSERT INTO files (userid, originalfilename, localfilename,location, fileextension, sizeinkbs, fileid) VALUES (?, ?, ?,?,?,?,?)");
-            statement.setObject(1, java.util.UUID.fromString((userFile.getUserid() != null ? userFile.getUserid() : archionRequest.getUserObject().getId().toString())));
-            statement.setString(2, userFile.getOriginalfilename());
-            statement.setString(3, userFile.getLocalfilename() == null ? newLocalFilename : userFile.getLocalfilename());
-            statement.setString(4, userFile.getLocation());
-            statement.setString(5, userFile.getFileextension());
-            statement.setString(6, userFile.getSizeinkbs());
-            statement.setObject(7, java.util.UUID.fromString(userFile.getFileid()));
+            statement.setObject(1, java.util.UUID.fromString((fileMetadata.getUserid() != null ? fileMetadata.getUserid() : archionRequest.getUserObject().getId().toString())));
+            statement.setString(2, fileMetadata.getOriginalfilename());
+            statement.setString(3, fileMetadata.getLocalfilename() == null ? newLocalFilename : fileMetadata.getLocalfilename());
+            statement.setString(4, fileMetadata.getLocation());
+            statement.setString(5, fileMetadata.getFileextension());
+            statement.setString(6, fileMetadata.getSizeinkbs());
+            statement.setObject(7, java.util.UUID.fromString(fileMetadata.getFileid()));
 
             Integer results = statement.executeUpdate(); //Avoids an ""PSQLException: No results were returned by the query."
 
@@ -56,11 +56,11 @@ public class FileDAO extends AbstractDAO {
             archionRequest.getResponseObject().addError("SQL Error", ArchionConstants.FILE_CREATION_ERROR_MESSAGE);
             return null;
         }
-        return userFile;
+        return fileMetadata;
     }
 
-    public UserFile retrieve(ArchionRequest archionRequest, String id) {
-        UserFile userile = null;
+    public FileMetadata retrieve(ArchionRequest archionRequest, String id) {
+        FileMetadata userile = null;
 
         try {
             connection = this.getConnection();
@@ -73,7 +73,9 @@ public class FileDAO extends AbstractDAO {
 
         } catch (SQLException sqlException) {
             sqlException.printStackTrace();
-            archionRequest.getResponseObject().addDebug("SQLException", sqlException.getMessage());
+            if(archionRequest!=null){
+                archionRequest.getResponseObject().addDebug("SQLException", sqlException.getMessage());
+            }
         }
 
         return userile;
@@ -81,9 +83,9 @@ public class FileDAO extends AbstractDAO {
     }
 
 
-    public List<UserFile> retrieveList(ArchionRequest archionRequest, String filetype) {
-        List<UserFile> fileList = new ArrayList<>();
-        UserFile usf;
+    public List<FileMetadata> retrieveList(ArchionRequest archionRequest, String filetype) {
+        List<FileMetadata> fileList = new ArrayList<>();
+        FileMetadata usf;
 
         try {
             connection = this.getConnection();
@@ -108,8 +110,8 @@ public class FileDAO extends AbstractDAO {
     }
 
 
-    public List<UserFile> retrieveAll(ArchionRequest archionRequest) {
-        List<UserFile> files = new ArrayList<>();
+    public List<FileMetadata> retrieveAll(ArchionRequest archionRequest) {
+        List<FileMetadata> files = new ArrayList<>();
 
         try {
             connection = this.getConnection();
@@ -129,9 +131,9 @@ public class FileDAO extends AbstractDAO {
         return files;
     }
 
-    public List<UserFile> fetchOldFiles(String filetype) {
-        List<UserFile> fileList = new ArrayList<>();
-        UserFile usf;
+    public List<FileMetadata> fetchOldFiles(String filetype) {
+        List<FileMetadata> fileList = new ArrayList<>();
+        FileMetadata usf;
         Calendar calendar = java.util.Calendar.getInstance();
         if (filetype.equalsIgnoreCase(ArchionConstants.FILES_TEMP_FILETYPE)) {
             calendar.add(Calendar.MONTH, -1);
@@ -143,7 +145,7 @@ public class FileDAO extends AbstractDAO {
         } else {
             return null;
         }
-/*
+/* //TODO: Uncomment
         try {
             connection = this.getConnection();
 
@@ -165,15 +167,15 @@ public class FileDAO extends AbstractDAO {
         return fileList;
     }
 
-    public UserFile update(ArchionRequest archionRequest, UserFile userFile) {
+    public FileMetadata update(ArchionRequest archionRequest, FileMetadata fileMetadata) {
 
         Integer count = 0;
         try {
             connection = this.getConnection();
 
             PreparedStatement statement = connection.prepareStatement("UPDATE files SET created = ? WHERE fileid = ?");
-            statement.setTimestamp(1, userFile.getCreated());
-            statement.setObject(2, java.util.UUID.fromString(userFile.getFileid()));
+            statement.setTimestamp(1, fileMetadata.getCreated());
+            statement.setObject(2, java.util.UUID.fromString(fileMetadata.getFileid()));
 
             count = statement.executeUpdate();
         } catch (SQLException sqlException) {
@@ -181,29 +183,31 @@ public class FileDAO extends AbstractDAO {
         }
 
         if (count > 0 && !archionRequest.getResponseObject().hasType(ArchionNotification.NotificationType.error)) {
-            return this.retrieve(archionRequest, userFile.getFileid());
+            return this.retrieve(archionRequest, fileMetadata.getFileid());
         }
         return null;
     }
 
-    public Integer delete(ArchionRequest archionRequest, String id) {
+    public ArchionRequest deletePermanently(ArchionRequest archionRequest, FileMetadata fileMetadata) {
 
         Integer retVal = 0;
 
         try {
             connection = this.getConnection();
-            retVal = this.deleteFileById(id);
+            retVal = this.deleteFileById(fileMetadata.getFileid());
 
         } catch (SQLException sqlException) {
             archionRequest.getResponseObject().addDebug("SQLException", sqlException.getMessage());
             archionRequest.getResponseObject().addError("Error", ArchionConstants.FAILED_REMOVAL_FROM_DB);
+            archionRequest.getResponseObject().addInformation("Info", fileMetadata.toJSON());
         }
 
-        if (retVal > 0 && !archionRequest.getResponseObject().hasType(ArchionNotification.NotificationType.error)) {
+        if (retVal > 0 && !archionRequest.getResponseObject().hasError()) {
             archionRequest.getResponseObject().addSuccess("Success", ArchionConstants.DELETE_SUCCESSFUL_MESSAGE);
+            archionRequest.getResponseObject().setFileMetadata(null);
         }
 
-        return retVal;
+        return archionRequest;
     }
 
     public Integer deleteFileById(String id) throws SQLException {

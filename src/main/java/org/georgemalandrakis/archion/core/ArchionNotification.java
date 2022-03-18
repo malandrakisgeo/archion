@@ -3,7 +3,7 @@ package org.georgemalandrakis.archion.core;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class ArchionNotification {
-	public enum NotificationType { error, warning, info, success, blocking, debug, system }
+	public enum NotificationType { info, warning, error, success, debug }
 
 	@JsonProperty("Type")
 	private NotificationType type;

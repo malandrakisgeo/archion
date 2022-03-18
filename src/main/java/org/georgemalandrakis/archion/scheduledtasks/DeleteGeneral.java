@@ -4,7 +4,7 @@ import org.georgemalandrakis.archion.dao.FileDAO;
 import org.georgemalandrakis.archion.exception.FileDeletionException;
 import org.georgemalandrakis.archion.handlers.CloudHandler;
 import org.georgemalandrakis.archion.handlers.LocalMachineHandler;
-import org.georgemalandrakis.archion.model.UserFile;
+import org.georgemalandrakis.archion.model.FileMetadata;
 
 import java.util.List;
 
@@ -21,7 +21,7 @@ public class DeleteGeneral {
 
     public void runDelete(String filetype) {
         if (this.fileDAO != null && this.cloudHandler != null && this.cloudHandler != null) {
-            List<UserFile> normalFiles = this.fileDAO.fetchOldFiles(filetype);
+            List<FileMetadata> normalFiles = this.fileDAO.fetchOldFiles(filetype);
             normalFiles.forEach(file -> {
                 try {
                     if (this.cloudHandler.removeFile(file.getFileid()) && this.localMachineHandler.deleteFile(file.getFileid())) {

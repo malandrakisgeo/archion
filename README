@@ -10,6 +10,7 @@ We have three categories of files:
 1. Normal, which are deleted after a year of not being accessed.
 2. Temporary, which are forcibly deleted after a month
 3. Archives, which can only be manually deleted.
+(4. Test, which are deleted after two minutes)
 
 There is a postgres database containing the metadata of the files, including UUIDs, owner's id, last access dates, and more.
 
@@ -37,3 +38,45 @@ Make sure the SDK is Java 9 or later, as there are functionalities not supported
 It has been tested and runs fine with Oracle JDK 11.0.9
 
 =======================================
+
+##DETAILS
+
+#ArchionRequest & ArchionResponse
+    The ArchionRequest is sent by another  application when the latter intends to store, retrieve, or remove a file.
+
+    Archion treats the ArchionResponse as an entity dependent on an ArchionRequest, and  thereby one of its' fields.
+
+    Unlike other applications implementing a Resource/Service/Model/DAO-like pattern, the Response-object
+    to be returned (ArchionResponse in our case) is not created after all functionalities complete, but already
+    exists in advance and is constantly updated (at least the updatedFileMetadata field) while the code runs.
+
+    The ArchionResponse contains the updated fileMetadata, if everything went well, otherwise it contains a nulled
+    fileMetadata field and details about the problem, as well as the last instance of saved fileMetadata in the DB
+    as a debug message. There was the consideration of adding a debugFileMetadata field in ArchionResponse
+    yet as of 3/2022 it doesn't seem to be of any use to the caller application and a String for debug
+    purposes seems enough. Still it could be a good idea for anyone who may want to adjust and use the project
+    for one's own needs.
+
+
+#Authentication
+    The original Archion includes a form of Authentication for the caller application. The code here
+    assumes that the caller application has a total control over the files.
+
+
+#Files
+
+
+
+#Scheduled tasks
+
+
+
+
+
+
+
+
+
+
+
+

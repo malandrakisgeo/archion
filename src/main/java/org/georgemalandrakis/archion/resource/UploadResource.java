@@ -42,16 +42,16 @@ public class UploadResource extends AbstractResource {
         archionRequest.setUserObject(us);
 
         if (file == null) {
-            return buildResponse(archionRequest, Response.Status.BAD_REQUEST, "You need to send a file.");
+            return buildResponse(archionRequest.getResponseObject(), Response.Status.BAD_REQUEST, "You need to send a file.");
         }
 
         try {
             this.fileService.createNewFile(archionRequest, purpose, filename, file);
         } catch (Exception e) {
             e.printStackTrace();
-            return buildResponse(archionRequest, Response.Status.INTERNAL_SERVER_ERROR, "Could not upload file.");
+            return buildResponse(archionRequest.getResponseObject(), Response.Status.INTERNAL_SERVER_ERROR, "Could not upload file.");
         }
-        return buildResponse(archionRequest, Response.Status.OK, "Hurray!");
+        return buildResponse(archionRequest.getResponseObject(), Response.Status.OK, "Hurray!");
 
 
     }

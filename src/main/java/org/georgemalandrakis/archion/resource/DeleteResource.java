@@ -2,7 +2,7 @@ package org.georgemalandrakis.archion.resource;
 
 import com.codahale.metrics.annotation.Timed;
 import org.georgemalandrakis.archion.core.ArchionRequest;
-import org.georgemalandrakis.archion.model.UserFile;
+import org.georgemalandrakis.archion.model.FileMetadata;
 import org.georgemalandrakis.archion.service.FileService;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 
@@ -23,15 +23,15 @@ public class DeleteResource extends AbstractResource {
     @DELETE
     @Timed
     @Path("/{fileId}")
-    public Response deletebyId(@FormDataParam("req") ArchionRequest archionRequest,
-                               @FormDataParam("userFile") UserFile userFile) {
+    public Response deletebyId(@FormDataParam("req") ArchionRequest archionRequest) {
 
-        if (fileService.delete(archionRequest, userFile)) {
-            return buildResponse(archionRequest, Response.Status.OK);
+        archionRequest = this.fileService.deletePermanently(archionRequest);
+
+        if (!archionRequest.getResponseObject().hasError()) {
+            return buildResponse(archionRequest.getResponseObject(), Response.Status.OK);
         }
 
-
-        return buildResponse(archionRequest, Response.Status.NO_CONTENT);
+        return buildResponse(archionRequest.getResponseObject(), Response.Status.NO_CONTENT);
 
     }
 

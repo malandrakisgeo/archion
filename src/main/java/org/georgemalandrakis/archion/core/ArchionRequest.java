@@ -6,8 +6,8 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.georgemalandrakis.archion.model.FileMetadata;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.sql.Connection;
 import java.util.Date;
@@ -24,6 +24,9 @@ public class ArchionRequest {
 
 	@JsonProperty("User")
 	private ArchionUser archionUser;
+
+	@JsonProperty("FileMetadata")
+	FileMetadata initialMetadata;
 
 	@JsonIgnore
 	private Locale baseLanguage;
@@ -108,6 +111,10 @@ public class ArchionRequest {
 	}
 	public void setResponseObject(ArchionResponse archionResponse) {
 		this.archionResponse = archionResponse;
+	}
+
+	public FileMetadata getInitialMetadata() {
+		return initialMetadata;
 	}
 
 
