@@ -15,10 +15,7 @@ import org.georgemalandrakis.archion.filter.CrossDomainFilter;
 import org.georgemalandrakis.archion.handlers.LocalMachineHandler;
 import org.georgemalandrakis.archion.resource.DownloadResource;
 import org.georgemalandrakis.archion.resource.UploadResource;
-import org.georgemalandrakis.archion.scheduledtasks.DeleteGeneral;
-import org.georgemalandrakis.archion.scheduledtasks.DeleteOldFiles;
-import org.georgemalandrakis.archion.scheduledtasks.DeleteOldTempFiles;
-import org.georgemalandrakis.archion.scheduledtasks.DeleteOldTestFiles;
+import org.georgemalandrakis.archion.scheduledtasks.*;
 import org.georgemalandrakis.archion.service.FileService;
 import org.georgemalandrakis.archion.handlers.CloudHandler;
 import io.dropwizard.Application;
@@ -35,6 +32,7 @@ public class ArchionApplication extends Application<Config> implements JobConfig
     private DeleteOldFiles deleteOldFiles;
     private DeleteOldTestFiles deleteOldTestFiles;
     private DeleteOldTempFiles deleteOldTempFiles;
+    private DeleteDuplicates deleteDuplicates;
 
     public static void main(String[] args) throws Exception {
         new ArchionApplication().run(args);
@@ -46,6 +44,7 @@ public class ArchionApplication extends Application<Config> implements JobConfig
         deleteOldFiles = new DeleteOldFiles();
         deleteOldTestFiles = new DeleteOldTestFiles();
         deleteOldTempFiles = new DeleteOldTempFiles();
+        deleteDuplicates = new DeleteDuplicates();
 
         bootstrap.addBundle(new MultiPartBundle()); //Necessary for forms.
         bootstrap.addBundle(new JobsBundle(deleteOldFiles, deleteOldTestFiles, deleteOldTempFiles)); //Necessary for scheduled tasks
@@ -122,6 +121,7 @@ public class ArchionApplication extends Application<Config> implements JobConfig
         deleteOldFiles.setNecessaryClasses(deleteGeneral); //every 24h, for normal files
         deleteOldTestFiles.setNecessaryClasses(deleteGeneral);
         deleteOldTempFiles.setNecessaryClasses(deleteGeneral);
+        deleteDuplicates.setNecessaryClasses(deleteGeneral);
 
 
 

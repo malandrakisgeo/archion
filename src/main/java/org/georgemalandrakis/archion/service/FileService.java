@@ -8,17 +8,18 @@ import org.georgemalandrakis.archion.handlers.LocalMachineHandler;
 import org.georgemalandrakis.archion.model.FileMetadata;
 import org.georgemalandrakis.archion.model.FileProcedurePhase;
 import org.georgemalandrakis.archion.handlers.CloudHandler;
+import org.georgemalandrakis.archion.other.FileUtil;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.InputStream;
-import java.nio.ByteBuffer;
+import java.nio.file.Files;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.List;
 import java.util.UUID;
-import java.util.zip.CRC32;
+import static org.georgemalandrakis.archion.other.FileUtil.getFileExtensionFromFileName;
 
 public class FileService {
     private final FileDAO fileDao;
@@ -29,6 +30,10 @@ public class FileService {
         this.fileDao = fileDao;
         this.cloudHandler = cloudHandler;
         this.localMachineHandler = machineHandler;
+    }
+
+    public FileMetadata getUpdatedMetadata(String fileId) {
+        return this.fileDao.retrieve(null, fileId);
     }
 
     public ArchionRequest createNewFile(ArchionRequest archionRequest, String purpose, String filename, File file) throws Exception {
@@ -46,6 +51,9 @@ public class FileService {
         }
 
         fileMetadata.setFileid(UUID.randomUUID().toString());
+        fileMetadata.setSizeinkbs(String.valueOf(Files.size(file.toPath()) / 1024));
+        fileMetadata.setSha1Hash(FileUtil.calculate_SHA1(new FileInputStream(file)));
+
 
         switch (purpose) {
             case "temporary": //Temporary files are forcibly deleted after a month by default
@@ -75,7 +83,6 @@ public class FileService {
         }
 
 
-
         // Create the database entry, creates a unique local filename -and upload it to the cloud service as well!
         archionRequest = createDBEntry(archionRequest, fileMetadata); //We first store the metadata in the DB, and then the file itself
 
@@ -88,7 +95,7 @@ public class FileService {
 
         fileMetadata = archionRequest.getResponseObject().getFileMetadata(); //The metadata is modified in the storeFile() function.
 
-        fileMetadata.setLastmodified(Timestamp.valueOf(String.valueOf(System.currentTimeMillis())));
+        fileMetadata.setLastmodified(new Timestamp(System.currentTimeMillis()));
         archionRequest = this.update(archionRequest, fileMetadata);
 
         if (archionRequest.getResponseObject().hasError()) {
@@ -98,43 +105,53 @@ public class FileService {
         }
 
         archionRequest.getResponseObject().addSuccess("Success", ArchionConstants.UPLOAD_SUCCESSFUL_MESSAGE);
+        archionRequest.getResponseObject().setFileMetadata(fileMetadata);
 
 
         return archionRequest;
     }
 
-    //TODO: We assume here that the metadata used here is up to date. Is it so?
     public byte[] getFile(FileMetadata fileMetadata) {
+        //NOTE: Make sure that the FileMetadata is up-to-date before calling this function
         byte[] file = null;
+        boolean resaveLocally = false;
+        fileMetadata.setLastAccessed(new Timestamp(System.currentTimeMillis()));
+
         try {
             if (fileMetadata.getPhase().equals(FileProcedurePhase.LOCAL_MACHINE_STORED)) {
-                file = localMachineHandler.retrieveFile(fileMetadata.getFileid());
-            } else if (fileMetadata.getPhase().equals(FileProcedurePhase.LOCAL_MACHINE_REMOVED)) {
-                file = cloudHandler.downloadFile(fileMetadata.getFileid(), fileMetadata.getLocalfilename());
+                file = localMachineHandler.retrieveFile(fileMetadata.getFileid()); //Retrieve from local machine if recently accessed.
+            } else if (fileMetadata.getPhase().equals(FileProcedurePhase.CLOUD_SERVICE_STORED)) {
+                file = cloudHandler.downloadFile(fileMetadata.getFileid());
+                resaveLocally = true;
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
+        if (resaveLocally) {
+            fileMetadata = resaveInLocalMachine(fileMetadata, file); //User need not be notified if something goes wrong here.
+        }
+
+        fileDao.updateLastAccessed(fileMetadata.getFileid()); //TODO: Add some form of error check here
+
         return file;
     }
 
+    private FileMetadata resaveInLocalMachine(FileMetadata fileMetadata, byte[] filebytes) {
+        //TODO: Implement
+        return null;
+    }
 
-    public ArchionRequest storeFile(ArchionRequest archionRequest, FileMetadata fileMetadata, InputStream fileinputStream) {
+    private ArchionRequest storeFile(ArchionRequest archionRequest, FileMetadata fileMetadata, InputStream fileinputStream) {
         if (fileMetadata != null && fileinputStream != null) {
-
-
-            if (localMachineHandler.storeFile(fileMetadata, fileinputStream)) {
-                fileMetadata.setPhase(FileProcedurePhase.LOCAL_MACHINE_STORED); //If something goes wrong when uploading to the cloud, this lets ut know that it was successfully stored in
-                // the local machine.
-
-                if (cloudHandler.uploadFile(fileinputStream, fileMetadata.getLocalfilename())) {
-                    fileMetadata.setPhase(FileProcedurePhase.CLOUD_SERVICE_STORED);
-                } else {
+            if (localMachineHandler.storeFile(fileMetadata, fileinputStream) != null) { //If file successfully saved in local machine, try to save in cloud as well
+                if (cloudHandler.uploadFile(fileinputStream, fileMetadata) == null) { //and if anything goes wrong while uploading
+                    //inform the user
                     archionRequest.getResponseObject().addError("Error", ArchionConstants.FAILED_UPLOAD_TO_CLOUD_INFO, ArchionConstants.FAILED_UPLOAD_TO_CLOUD_NUM);
                     archionRequest.getResponseObject().addInformation("Info", fileMetadata.toJSON());
                 }
+            } else {
+                archionRequest.getResponseObject().addError("Error", ArchionConstants.ERROR_SAVING_LOCALLY, ArchionConstants.ERROR_SAVING_LOCALLY_NUM);
             }
-            archionRequest.getResponseObject().addError("Error", ArchionConstants.ERROR_SAVING_LOCALLY, ArchionConstants.ERROR_SAVING_LOCALLY_NUM);
             archionRequest.getResponseObject().setFileMetadata(fileMetadata);
         }
         return archionRequest;
@@ -142,14 +159,19 @@ public class FileService {
     }
 
 
-    public ArchionRequest createDBEntry(ArchionRequest archionRequest, FileMetadata fileMetadata) {
+    private ArchionRequest createDBEntry(ArchionRequest archionRequest, FileMetadata fileMetadata) {
         if (fileMetadata == null) {
             return null;
         }
-        fileMetadata.setCreated(Timestamp.valueOf(String.valueOf(System.currentTimeMillis())));
+        Timestamp creationandFirstAccess = new Timestamp(System.currentTimeMillis());
+        fileMetadata.setCreated(creationandFirstAccess);
+        fileMetadata.setLastAccessed(creationandFirstAccess);
         fileMetadata.setFileextension(getFileExtensionFromFileName(fileMetadata.getOriginalfilename()));
         fileMetadata.setPhase(FileProcedurePhase.DB_METADATA_STORED);
-        //fileMetadata = fileDao.create(archionRequest, fileMetadata); //TODO: Uncomment
+        fileMetadata.setUserid(archionRequest.getUserObject().getId());
+        String str = archionRequest.getUserObject().getId();
+        str.hashCode();
+        fileMetadata = fileDao.create(archionRequest, fileMetadata); //TODO: Uncomment
         archionRequest.getResponseObject().setFileMetadata(fileMetadata);
         return archionRequest;
     }
@@ -174,48 +196,6 @@ public class FileService {
     }
 
 
-    public ArchionRequest deletePermanently(ArchionRequest archionRequest) {
-        ArchionRequest archreqModified = archionRequest;
-
-        if (archionRequest.getUserObject().getId() != archionRequest.getInitialMetadata().getFileid()) {//TODO: See if we really need it. The requests are sent
-            // by an application and supposedly cannot be manipulated by the user, so such controls may be unnecessary here.
-
-            // The metadata shall not be removed from the db if the file itself is not removed from the cloud service & the local machine first.
-            archreqModified = this.removeFileFromSystem(archreqModified, archionRequest.getInitialMetadata());
-            if (archreqModified.getResponseObject().hasError()) {
-                return archreqModified;
-            } else {
-                return this.fileDao.deletePermanently(archionRequest, archionRequest.getInitialMetadata());
-            }
-
-        }
-        archionRequest.getResponseObject().addError("Error", ArchionConstants.USER_NOT_AUTHORIZED_TO_DELETE_FILE, ArchionConstants.USER_NOT_AUTHORIZED_TO_DELETE_FILE_NUM);
-        return archreqModified;
-    }
-
-    //Removes the file itself from the machine and the cloud service. The removal of its' metadata in the db is another function
-    private ArchionRequest removeFileFromSystem(ArchionRequest archionRequest, FileMetadata fileMetadata) {
-        if (fileMetadata.getPhase() != FileProcedurePhase.LOCAL_MACHINE_REMOVED) { //It is possible for a file available in the web service to be already removed from the local
-            // machine, but not the opposite.
-            if (this.localMachineHandler.deleteFile(fileMetadata.getFileid())) {
-                fileMetadata.setPhase(FileProcedurePhase.LOCAL_MACHINE_REMOVED);
-            } else {
-                archionRequest.getResponseObject().addError("Error", ArchionConstants.FAILED_REMOVAL_FROM_LOCAL_MACHINE_INFO, ArchionConstants.FAILED_REMOVAL_FROM_LOCAL_MACHINE_NUM);
-                archionRequest.getResponseObject().addInformation("Info", fileMetadata.toJSON());
-                return archionRequest;
-            }
-        }
-
-        if (this.cloudHandler.removeFile(fileMetadata.getFileid())) {
-            fileMetadata.setPhase(FileProcedurePhase.CLOUD_SERVICE_REMOVED);
-        } else {
-            archionRequest.getResponseObject().addError("Error", ArchionConstants.FAILED_REMOVAL_FROM_CLOUD_INFO, ArchionConstants.FAILED_REMOVAL_FROM_CLOUD_NUM);
-            archionRequest.getResponseObject().addInformation("Info", fileMetadata.toJSON());
-        }
-        return archionRequest;
-
-    }
-
     public FileMetadata retrieveFileMetadata(ArchionRequest archionRequest, String id) {
         return fileDao.retrieve(archionRequest, id);
     }
@@ -224,27 +204,34 @@ public class FileService {
         return fileDao.retrieveList(archionRequest, fileType);
     }
 
-    private String getFileExtensionFromFileName(String fileName) {
-        String fileExtension = "";
 
-        int i = fileName.lastIndexOf('.');
-        if (i >= 0) {
-            fileExtension = fileName.substring(i + 1);
+    public ArchionRequest remove(ArchionRequest archionRequest) {
+        FileMetadata file = archionRequest.getInitialMetadata();
+        FileMetadata tempFileMetadata;
+
+        if (file.getPhase() == FileProcedurePhase.LOCAL_MACHINE_STORED) {
+            tempFileMetadata = this.localMachineHandler.deleteFile(file);
+            if (tempFileMetadata == null) {
+                archionRequest.getResponseObject().addError("Error", ArchionConstants.FAILED_REMOVAL_FROM_LOCAL_MACHINE_INFO, ArchionConstants.FAILED_REMOVAL_FROM_LOCAL_MACHINE_NUM);
+                archionRequest.getResponseObject().addInformation("Info", file.toJSON());
+            } else {
+                file = tempFileMetadata;
+            }
         }
 
-        return fileExtension;
-    }
+        if (file.getPhase() == FileProcedurePhase.CLOUD_SERVICE_STORED) { //If successfully removed now or already removed from the machine in the first place
+            if (this.cloudHandler.removeFile(file) == null) {
+                archionRequest.getResponseObject().addError("Error", ArchionConstants.FAILED_REMOVAL_FROM_CLOUD_INFO, ArchionConstants.FAILED_REMOVAL_FROM_CLOUD_NUM);
+                archionRequest.getResponseObject().addInformation("Info", file.toJSON());
+            }
+        }
 
-    private ArchionRequest calculateDigests(ArchionRequest archionRequest, File file){
-        CRC32 crc = new CRC32();
-//TODO: fix
-        FileInputStream fileInputStream = null;
         try {
-            fileInputStream = new FileInputStream(file);
-            crc.update(fileInputStream.readAllBytes());
-            archionRequest.getResponseObject().getFileMetadata().setCrc32Hex(crc.toString());
-        } catch (Exception e ) {
+            this.fileDao.deleteFileById(file.getFileid());
+        } catch (SQLException e) {
             e.printStackTrace();
+            archionRequest.getResponseObject().addError("Error", ArchionConstants.FAILED_REMOVAL_FROM_DB, ArchionConstants.FAILED_REMOVAL_FROM_DB_NUM);
+            archionRequest.getResponseObject().addInformation("Info", file.toJSON());
         }
 
         return archionRequest;

@@ -27,23 +27,26 @@ public class FileDAO extends AbstractDAO {
 
         try {
             connection = this.getConnection();
-            Integer triesLeft = 5;
 
-
-            String newLocalFilename = (fileMetadata.getLocalfilename() != null ? fileMetadata.getLocalfilename() : fileMetadata.getOriginalfilename() + "-" + fileMetadata.getFileid());
+            String newLocalFilename = (fileMetadata.getLocalfilename() != null ? fileMetadata.getLocalfilename() : fileMetadata.getFileid());
             fileMetadata.setLocalfilename(newLocalFilename);
 
 
-            PreparedStatement statement = connection.prepareStatement("INSERT INTO files (userid, originalfilename, localfilename,location, fileextension, sizeinkbs, fileid) VALUES (?, ?, ?,?,?,?,?)");
-            statement.setObject(1, java.util.UUID.fromString((fileMetadata.getUserid() != null ? fileMetadata.getUserid() : archionRequest.getUserObject().getId().toString())));
-            statement.setString(2, fileMetadata.getOriginalfilename());
-            statement.setString(3, fileMetadata.getLocalfilename() == null ? newLocalFilename : fileMetadata.getLocalfilename());
-            statement.setString(4, fileMetadata.getLocation());
-            statement.setString(5, fileMetadata.getFileextension());
-            statement.setString(6, fileMetadata.getSizeinkbs());
-            statement.setObject(7, java.util.UUID.fromString(fileMetadata.getFileid()));
+            PreparedStatement statement = connection.prepareStatement("INSERT INTO file_metadata_table (id, associated_user, original_filename, file_extension, " +
+                    "size_in_kilobytes, date_created, file_scope, procedure_phase, sha1_digest) VALUES" +
+                    " (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            statement.setObject(1, java.util.UUID.fromString(fileMetadata.getFileid()));
+            statement.setObject(2, java.util.UUID.fromString((fileMetadata.getUserid() != null ? fileMetadata.getUserid() : archionRequest.getUserObject().getId())));
+            //error if null!
+            statement.setString(3, fileMetadata.getOriginalfilename());
+            statement.setString(4, fileMetadata.getFileextension());
+            statement.setInt(5, Integer.valueOf(fileMetadata.getSizeinkbs()));
+            statement.setTimestamp(6, fileMetadata.getCreated());
+            statement.setString(7, fileMetadata.getFiletype());
+            statement.setString(8, fileMetadata.getPhase().toString());
+            statement.setString(9, fileMetadata.getSha1Hash());
 
-            Integer results = statement.executeUpdate(); //Avoids an ""PSQLException: No results were returned by the query."
+            Integer results = statement.executeUpdate();
 
             if (results < 0) {
                 archionRequest.getResponseObject().addError("SQL Error", ArchionConstants.FILE_CREATION_ERROR_MESSAGE);
@@ -80,6 +83,10 @@ public class FileDAO extends AbstractDAO {
 
         return userile;
 
+    }
+
+    public void updateLastAccessed(String fileid){
+        //TODO: Implement
     }
 
 
@@ -165,6 +172,35 @@ public class FileDAO extends AbstractDAO {
         }
 */
         return fileList;
+    }
+
+    public List<FileMetadata> fetchUserDuplicates(){
+        List<FileMetadata> files = new ArrayList<>();
+
+        try {
+            connection = this.getConnection();
+            String sql = "SELECT * from  file_metadata_table ou WHERE (SELECT count(*) from file_metadata_table inr " +
+                    "where inr.sha1_digest = ou.sha1_digest AND inr.associated_user = ou.associated_user) > 1 ";
+
+            PreparedStatement statement = connection.prepareStatement(sql);
+            ResultSet resultSet = statement.executeQuery();
+
+            while (resultSet.next()) {
+                files.add(UserFileMapper.map(resultSet));
+            }
+
+        } catch (SQLException sqlException) {
+            sqlException.printStackTrace();
+        }
+
+        return files;
+    }
+
+    public List<FileMetadata> fetchNotAccessedForThreeDays(){
+        List<FileMetadata> files = new ArrayList<>();
+
+        //TODO: Implement
+        return files;
     }
 
     public FileMetadata update(ArchionRequest archionRequest, FileMetadata fileMetadata) {

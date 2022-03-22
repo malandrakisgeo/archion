@@ -23,8 +23,8 @@ logging:
 
 # Base Database Server
 base:
-  server: localhost:5435
-  name: postgres
+  server: localhost:5432
+  name: archion
   username: postgres
   password: postgres
 

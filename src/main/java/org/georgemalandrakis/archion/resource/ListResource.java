@@ -52,7 +52,7 @@ public class ListResource extends AbstractResource {
 
         try {
             for (String id : fileIds) {
-                fileMetadata = fileService.retrieveFileMetadata(archionRequest, id);
+                fileMetadata = fileService.getUpdatedMetadata(id);
                 count++;
                 zipFile.putNextEntry(new ZipEntry(fileMetadata.getOriginalfilename()));
                 zipFile.write(fileService.getFile(fileMetadata));

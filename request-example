@@ -1,0 +1,8 @@
+Postman/form-data, "req" field:
+
+{"Session": "Session",
+"User": {
+"Id": "36f632c4-c4e7-4522-a39b-1e9d14e8a2b9",
+"Email": "malandrakisgeo@gmail.com",
+"Name": "George Malandrakis"
+}}

@@ -14,7 +14,7 @@ public interface ArchionConstants {
     String FAILED_UPDATE_MESSAGE = "There was an error updating the file metadata.";
     Integer FAILED_UPDATE_NUM = Integer.valueOf(002);
 
-    String FAILED_DELETION_MESSAGE = "Could not properly delete file with id: ";
+    String FAILED_DELETION_MESSAGE = "Could not properly delete file: ";
     Integer FAILED_DELETION_NUM = Integer.valueOf(003);
 
     String FAILED_UPLOAD_TO_CLOUD_INFO = "Could not upload file to cloud service";

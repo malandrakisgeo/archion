@@ -25,7 +25,7 @@ public class DeleteResource extends AbstractResource {
     @Path("/{fileId}")
     public Response deletebyId(@FormDataParam("req") ArchionRequest archionRequest) {
 
-        archionRequest = this.fileService.deletePermanently(archionRequest);
+        archionRequest = this.fileService.remove(archionRequest);
 
         if (!archionRequest.getResponseObject().hasError()) {
             return buildResponse(archionRequest.getResponseObject(), Response.Status.OK);

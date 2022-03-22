@@ -12,6 +12,8 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.util.IOUtils;
 import org.georgemalandrakis.archion.core.ConnectionManager;
+import org.georgemalandrakis.archion.model.FileMetadata;
+import org.georgemalandrakis.archion.model.FileProcedurePhase;
 
 import java.io.*;
 
@@ -37,39 +39,41 @@ public class CloudHandler {
 	}
 
 
-	public byte[] downloadFile(String fileid, String filename) throws Exception {
-		S3Object fullObject = sClient.getObject(new GetObjectRequest(bucketName, filename));
+	public byte[] downloadFile(String fileid) throws Exception {
+		S3Object fullObject = sClient.getObject(new GetObjectRequest(bucketName, fileid));
 		return IOUtils.toByteArray(fullObject.getObjectContent());
 	}
 
 
-	public boolean uploadFile(InputStream inputStream, String filename) {
+	public FileMetadata uploadFile(InputStream inputStream, FileMetadata fileMetadata) {
 		ObjectMetadata metadata = new ObjectMetadata();
 
 		if (inputStream != null) {
 			try {
 				//sClient.putObject(bucketName, filename, inputStream, metadata); //TODO: Uncomment
-				return true;
+				fileMetadata.setPhase(FileProcedurePhase.CLOUD_SERVICE_STORED);
+
+				return fileMetadata;
 			} catch (Exception e) {
 				e.printStackTrace();
-				return false;
+				return null;
 			}
 		}
-		return true;
+		return fileMetadata;
 	}
 
 
-	public boolean removeFile(String fileid) {
-
-		if (fileid != null) {
+	public FileMetadata removeFile(FileMetadata fileMetadata) {
+		if (fileMetadata != null) {
 			try {
-				sClient.deleteObject(bucketName,fileid);
+				sClient.deleteObject(bucketName,fileMetadata.getFileid());
+				fileMetadata.setPhase(FileProcedurePhase.CLOUD_SERVICE_REMOVED);
 			} catch (Exception e) {
 				e.printStackTrace();
-				return false;
+				return null;
 			}
 		}
-		return true;
+		return fileMetadata;
 	}
 
 

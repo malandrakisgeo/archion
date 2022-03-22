@@ -32,6 +32,9 @@ public class FileMetadata {
 	@JsonProperty("Crc32Hex")
 	private String crc32Hex;
 
+	@JsonProperty("lastAccessed")
+	private Timestamp lastAccessed;
+
 	@JsonProperty("LastModified")
 	private Timestamp lastmodified;
 
@@ -154,6 +157,14 @@ public class FileMetadata {
 
 	public void setPhase(FileProcedurePhase phase) {
 		this.phase = phase;
+	}
+
+	public Timestamp getLastAccessed() {
+		return lastAccessed;
+	}
+
+	public void setLastAccessed(Timestamp lastAccessed) {
+		this.lastAccessed = lastAccessed;
 	}
 
 	@JsonIgnore

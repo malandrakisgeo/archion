@@ -23,7 +23,7 @@ public class DownloadResource extends AbstractResource {
 	@GET
 	@Timed
 	public Response tryit() {
-		FileMetadata fileMetadata = fileService.retrieveFileMetadata(new ArchionRequest(), "");
+		FileMetadata fileMetadata = fileService.getUpdatedMetadata("");
 		/*FileMetadata fileMetadata = new FileMetadata();
 		fileMetadata.setFileid("");
 		fileMetadata.setLocalfilename("todo.zip"); */
@@ -45,6 +45,7 @@ public class DownloadResource extends AbstractResource {
 	@Timed
 	public Response getfileInfo(ArchionRequest archionRequest) {
 
+		//TODO: Implement
 		if (archionRequest.getUserObject().getId().equals(String.valueOf(archionRequest.getInitialMetadata().getUserid()))) {
 			return buildResponse(archionRequest.getResponseObject(), Response.Status.OK);
 		}
@@ -60,8 +61,9 @@ public class DownloadResource extends AbstractResource {
 	public Response downloadFile(ArchionRequest archionRequest) {
 
 		byte[] file;
+		FileMetadata fileMetadata = fileService.getUpdatedMetadata(archionRequest.getInitialMetadata().getFileid());
 
-		file = fileService.getFile(archionRequest.getInitialMetadata());
+		file = fileService.getFile(fileMetadata);
 
 		if (file!=null) {
 			HashMap<String, Object> header = this.createProperHeaders(archionRequest.getInitialMetadata().getFileextension(), String.valueOf(file.length));

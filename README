@@ -68,11 +68,31 @@ It has been tested and runs fine with Oracle JDK 11.0.9
 
 
 #Scheduled tasks
+    Since Dropwizard provides no native support for quartz, we rely on the
+    external library dropwizard-jobs-core.
+
+    The following scheduled tasks are available:
+    1. DeleteOldFiles, removing normal files last accessed two years ago.
+    2. DeleteOldTempFiles, removing temp files a month old.
+    3. DeleteOldTestFiles, removing test files one minute old.
+    4. DeleteDuplicates, removing duplicate files of the same user based on their
+        SHA-1 digest.
+
+    All run once about 15 seconds after the Application starts.
+    1,2, and 4 run every 24 hours afterwards.
+    3 runs once a minute.
 
 
+#Database
+    The project relies on a postgres-db currently having a single table.
 
+    Given the simplicity of the db, a plain jdbc connection with hard-coded queries is used
+    instead of an advanced technology like Hibernate or JPA. No, I am not fond of hard-coded
+    queries either, but it seems enough for a project with just one table in the db.
+    At least for now.
 
-
+    For the time being, there are only some TODOs about transaction isolation and
+    a some doubts about the safety of auto-commits.
 
 
 

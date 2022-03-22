@@ -36,10 +36,7 @@ public class UploadResource extends AbstractResource {
     public Response create(@FormDataParam("req") ArchionRequest archionRequest,
                            @Valid @FormDataParam("purpose") String purpose,
                            @Valid @FormDataParam("filename") String filename,
-                           @Valid @FormDataParam("file") File file) throws FileNotFoundException {
-        ArchionUser us = new ArchionUser(); //TODO: implement authentication
-        us.setId(UUID.randomUUID().toString());
-        archionRequest.setUserObject(us);
+                           @Valid @FormDataParam("file") File file)  {
 
         if (file == null) {
             return buildResponse(archionRequest.getResponseObject(), Response.Status.BAD_REQUEST, "You need to send a file.");
