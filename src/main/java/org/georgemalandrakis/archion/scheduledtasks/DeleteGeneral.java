@@ -52,7 +52,10 @@ public class DeleteGeneral {
             List<FileMetadata> normalFiles = this.fileDAO.fetchNotAccessedForThreeDays();
             normalFiles.forEach(file -> {
                 try {
-                    this.localMachineHandler.deleteFile(file);
+                    FileMetadata tempMetadata = this.localMachineHandler.deleteFileFromLocalMachine(file);
+                    if(tempMetadata!=null){
+                        this.fileDAO.update(null, tempMetadata);
+                    }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -62,9 +65,10 @@ public class DeleteGeneral {
 
     private void remove(FileMetadata file) throws Exception {
         FileMetadata tempFileMetadata;
+        file.getFileid();
 
-        if (file.getPhase() == FileProcedurePhase.LOCAL_MACHINE_STORED) {
-            tempFileMetadata = this.localMachineHandler.deleteFile(file);
+        if (file.getPhase() == FileProcedurePhase.LOCAL_MACHINE_STORED  || file.getPhase() == FileProcedurePhase.CLOUD_SERVICE_STORED ) {
+            tempFileMetadata = this.localMachineHandler.deleteFileFromLocalMachine(file);
             if (tempFileMetadata == null) {
                 throw new FileDeletionException(file);
             } else {
@@ -72,7 +76,8 @@ public class DeleteGeneral {
             }
         }
 
-        if (file.getPhase() == FileProcedurePhase.CLOUD_SERVICE_STORED) { //If successfully removed now or already removed from the machine in the first place
+        if (file.getPhase() == FileProcedurePhase.LOCAL_MACHINE_REMOVED || file.getPhase() == FileProcedurePhase.CLOUD_SERVICE_STORED ) {
+            // the machine in the first place
             if (this.cloudHandler.removeFile(file) == null) {
                 throw new FileDeletionException(file);
             }

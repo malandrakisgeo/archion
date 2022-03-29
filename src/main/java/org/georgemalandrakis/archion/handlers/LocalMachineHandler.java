@@ -1,6 +1,7 @@
 package org.georgemalandrakis.archion.handlers;
 
 import org.georgemalandrakis.archion.core.ConnectionManager;
+import org.georgemalandrakis.archion.exception.FileDeletionException;
 import org.georgemalandrakis.archion.model.FileMetadata;
 import org.georgemalandrakis.archion.model.FileProcedurePhase;
 
@@ -18,7 +19,7 @@ public class LocalMachineHandler {
     }
 
     public FileMetadata storeFile(FileMetadata fileMetadata, InputStream data) {
-        String fileLocationAndName = this.localFileFolder + "-" + fileMetadata.getFileid();
+        String fileLocationAndName = this.localFileFolder + fileMetadata.getFileid();
         try {
             File file = new File(fileLocationAndName);
             OutputStream outStream = new FileOutputStream(file);
@@ -33,16 +34,27 @@ public class LocalMachineHandler {
         return fileMetadata;
     }
 
+    //This function MUST NOT run for files stored only in the cloud or the db.
+    public FileMetadata deleteFileFromLocalMachine(FileMetadata fileMetadata){
 
-    public FileMetadata deleteFile(FileMetadata fileMetadata){
-        //TODO implement
-        /*
-            Null if unsuccessful.
-
-         */
-        if(fileMetadata.getPhase() == FileProcedurePhase.LOCAL_MACHINE_STORED){
-            fileMetadata.setPhase(FileProcedurePhase.CLOUD_SERVICE_STORED);
+        if(!(fileMetadata.getPhase() == FileProcedurePhase.LOCAL_MACHINE_STORED  || fileMetadata.getPhase() == FileProcedurePhase.CLOUD_SERVICE_STORED)){
+            return null;
         }
+
+        String fileLocationAndName = this.localFileFolder + fileMetadata.getFileid();
+        try {
+            File file = new File(fileLocationAndName);
+            boolean success = file.delete();
+            if(success){
+                fileMetadata.setPhase(FileProcedurePhase.LOCAL_MACHINE_REMOVED);
+            }else{
+                throw new FileDeletionException(fileMetadata);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+
         return fileMetadata;
     }
 

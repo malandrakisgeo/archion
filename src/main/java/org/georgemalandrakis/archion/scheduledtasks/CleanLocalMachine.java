@@ -10,7 +10,7 @@ import org.quartz.JobExecutionException;
 /*
     Removes from the local machine files not accessed
  */
-@DelayStart("30s")
+@DelayStart("10s")
 @Every("24h")
 public class CleanLocalMachine extends Job {
     DeleteGeneral deleteGeneral;

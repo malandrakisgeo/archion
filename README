@@ -64,7 +64,21 @@ It has been tested and runs fine with Oracle JDK 11.0.9
 
 
 #Files
+    There are four categories (or scopes) of files: normal, temporary, archive, and test.
+    The same procedures are applied to all of them, and only the time of deletion varies accordingly.
 
+    The life-cycle of a file consists of five phases:
+        1. DB_METADATA_STORED, when the metadata is saved in a database, but no actual data is
+            stored yet.
+        2. LOCAL_MACHINE_STORED, when the actual data is saved in the local machine but not yet
+            in the cloud service.
+        3. CLOUD_SERVICE_STORED, when the data is stored in both the local machine and the cloud
+        4. LOCAL_MACHINE_REMOVED, when the file is removed from the local machine after not being
+            accessed in three days (non-test files only, of course), and only exists on the cloud.
+        5. CLOUD_SERVICE_REMOVED, the file is removed from both the cloud service and the local machine
+            and is soon to be removed from the db also.
+
+        (NOTE: In the current implementation, there are not database entries with CLOUD_SERVICE_REMOVED)
 
 
 #Scheduled tasks
@@ -73,13 +87,15 @@ It has been tested and runs fine with Oracle JDK 11.0.9
 
     The following scheduled tasks are available:
     1. DeleteOldFiles, removing normal files last accessed two years ago.
-    2. DeleteOldTempFiles, removing temp files a month old.
+    2. DeleteOldTempFiles, removing temporary files a month old.
     3. DeleteOldTestFiles, removing test files one minute old.
     4. DeleteDuplicates, removing duplicate files of the same user based on their
         SHA-1 digest.
+    5. CleanLocalMachine, removing from the local machine files not accessed
+        the last three days.
 
     All run once about 15 seconds after the Application starts.
-    1,2, and 4 run every 24 hours afterwards.
+    1,2, 4, and 5 run every 24 hours afterwards.
     3 runs once a minute.
 
 
@@ -91,8 +107,8 @@ It has been tested and runs fine with Oracle JDK 11.0.9
     queries either, but it seems enough for a project with just one table in the db.
     At least for now.
 
-    For the time being, there are only some TODOs about transaction isolation and
-    a some doubts about the safety of auto-commits.
+    There is the consideration of switching to jOOQ, but it is far from certain.
+
 
 
 

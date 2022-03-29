@@ -33,6 +33,7 @@ public class ArchionApplication extends Application<Config> implements JobConfig
     private DeleteOldTestFiles deleteOldTestFiles;
     private DeleteOldTempFiles deleteOldTempFiles;
     private DeleteDuplicates deleteDuplicates;
+    private CleanLocalMachine cleanLocalMachine;
 
     public static void main(String[] args) throws Exception {
         new ArchionApplication().run(args);
@@ -45,9 +46,10 @@ public class ArchionApplication extends Application<Config> implements JobConfig
         deleteOldTestFiles = new DeleteOldTestFiles();
         deleteOldTempFiles = new DeleteOldTempFiles();
         deleteDuplicates = new DeleteDuplicates();
+        cleanLocalMachine = new CleanLocalMachine();
 
         bootstrap.addBundle(new MultiPartBundle()); //Necessary for forms.
-        bootstrap.addBundle(new JobsBundle(deleteOldFiles, deleteOldTestFiles, deleteOldTempFiles)); //Necessary for scheduled tasks
+        bootstrap.addBundle(new JobsBundle(deleteOldFiles, deleteOldTestFiles, deleteOldTempFiles, cleanLocalMachine, deleteDuplicates)); //Necessary for scheduled tasks
     }
 
     @Override
@@ -122,6 +124,7 @@ public class ArchionApplication extends Application<Config> implements JobConfig
         deleteOldTestFiles.setNecessaryClasses(deleteGeneral);
         deleteOldTempFiles.setNecessaryClasses(deleteGeneral);
         deleteDuplicates.setNecessaryClasses(deleteGeneral);
+        cleanLocalMachine.setNecessaryClasses(deleteGeneral);
 
 
 

@@ -47,4 +47,6 @@ public interface ArchionConstants {
     String UPLOAD_SUCCESSFUL_MESSAGE = "The test file has been successfully uploaded.";
     String DELETE_SUCCESSFUL_MESSAGE = "The file data has been deleted.";
 
+    String FILE_ALREADY_EXISTS = "The file with the current SHA1 message digest already exists.";
+
 }

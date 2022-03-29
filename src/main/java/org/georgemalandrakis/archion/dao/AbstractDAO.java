@@ -22,7 +22,7 @@ public abstract class AbstractDAO {
 
         //Connection connection = DriverManager.getConnection("jdbc:postgresql://localhost:5432/archion?user=postgres&password=postgres"); //works
         connection.setAutoCommit(true); //TODO: Perhaps unsafe
-        connection.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
+        connection.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE); //Nästintill omöjligt att få transaction-anomalies
 
 
         return connection;

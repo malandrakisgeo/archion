@@ -59,7 +59,7 @@ public class ArchionResponse {
 
     public Boolean hasType(ArchionNotification.NotificationType type) { //TODO: See if we really need it or if hasError is just fine.
         if (type == ArchionNotification.NotificationType.error && hasError) { //skip the for-loop
-            return hasError;
+            return true;
         }
         for (ArchionNotification archionNotification : this.getNotification()) {
             if (archionNotification.getType() == type) {

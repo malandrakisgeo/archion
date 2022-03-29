@@ -22,8 +22,34 @@ public class FileDAO extends AbstractDAO {
 
     }
 
+    public boolean file_exists(String user_id, String sha1_hash) {
 
-    public FileMetadata create(ArchionRequest archionRequest, FileMetadata fileMetadata) {
+        String sql = "SELECT * from  file_metadata_table ou WHERE  sha1_digest = ? AND associated_user = ?";
+        FileMetadata userile = null;
+
+        try {
+            connection = this.getConnection();
+            PreparedStatement statement = connection.prepareStatement(sql);
+            statement.setString(1,sha1_hash);
+            statement.setObject(2, java.util.UUID.fromString(user_id));
+
+            ResultSet resultSet = statement.executeQuery();
+            if (resultSet.next()) {
+                return true;
+            }
+
+        } catch (SQLException sqlException) {
+            sqlException.printStackTrace();
+        }
+
+
+        return false;
+
+    }
+
+
+    public ArchionRequest create(ArchionRequest archionRequest) {
+        FileMetadata fileMetadata = archionRequest.getResponseObject().getFileMetadata();
 
         try {
             connection = this.getConnection();
@@ -59,7 +85,8 @@ public class FileDAO extends AbstractDAO {
             archionRequest.getResponseObject().addError("SQL Error", ArchionConstants.FILE_CREATION_ERROR_MESSAGE);
             return null;
         }
-        return fileMetadata;
+        archionRequest.getResponseObject().setFileMetadata(fileMetadata);
+        return archionRequest;
     }
 
     public FileMetadata retrieve(ArchionRequest archionRequest, String id) {
@@ -67,7 +94,7 @@ public class FileDAO extends AbstractDAO {
 
         try {
             connection = this.getConnection();
-            PreparedStatement statement = connection.prepareStatement("SELECT  * FROM files WHERE fileid = ?");
+            PreparedStatement statement = connection.prepareStatement("SELECT  * FROM file_metadata_table WHERE id = ?");
             statement.setObject(1, java.util.UUID.fromString(id));
             ResultSet resultSet = statement.executeQuery();
             if (resultSet.next()) {
@@ -76,7 +103,7 @@ public class FileDAO extends AbstractDAO {
 
         } catch (SQLException sqlException) {
             sqlException.printStackTrace();
-            if(archionRequest!=null){
+            if (archionRequest != null) {
                 archionRequest.getResponseObject().addDebug("SQLException", sqlException.getMessage());
             }
         }
@@ -85,7 +112,7 @@ public class FileDAO extends AbstractDAO {
 
     }
 
-    public void updateLastAccessed(String fileid){
+    public void updateLastAccessed(String fileid) {
         //TODO: Implement
     }
 
@@ -97,7 +124,7 @@ public class FileDAO extends AbstractDAO {
         try {
             connection = this.getConnection();
 
-            PreparedStatement statement = connection.prepareStatement("SELECT  * FROM files WHERE filetype = ? AND ownerid = ?");
+            PreparedStatement statement = connection.prepareStatement("SELECT  * FROM file_metadata_table WHERE filetype = ? AND ownerid = ?");
 
             statement.setObject(1, java.util.UUID.fromString(filetype));
             statement.setObject(2, archionRequest.getUserObject().getId());
@@ -156,7 +183,7 @@ public class FileDAO extends AbstractDAO {
         try {
             connection = this.getConnection();
 
-            PreparedStatement statement = connection.prepareStatement("SELECT  fileid, localfilename FROM files WHERE filetype = ? AND lastmodified < ?");
+            PreparedStatement statement = connection.prepareStatement("SELECT  id, localfilename FROM files WHERE filetype = ? AND lastmodified < ?");
             statement.setString(1, filetype);
             statement.setTimestamp(2, Timestamp.valueOf(String.valueOf(calendar.getTimeInMillis())));
             ResultSet resultSet = statement.executeQuery();
@@ -174,7 +201,7 @@ public class FileDAO extends AbstractDAO {
         return fileList;
     }
 
-    public List<FileMetadata> fetchUserDuplicates(){
+    public List<FileMetadata> fetchUserDuplicates() {
         List<FileMetadata> files = new ArrayList<>();
 
         try {
@@ -196,10 +223,27 @@ public class FileDAO extends AbstractDAO {
         return files;
     }
 
-    public List<FileMetadata> fetchNotAccessedForThreeDays(){
+    public List<FileMetadata> fetchNotAccessedForThreeDays() {
         List<FileMetadata> files = new ArrayList<>();
+        Calendar cal = Calendar.getInstance();
+        cal.add(Calendar.DAY_OF_YEAR, -3);
 
-        //TODO: Implement
+        try {
+            connection = this.getConnection();
+            String sql = "SELECT * from file_metadata_table WHERE last_accessed <= ? ;";
+
+            PreparedStatement statement = connection.prepareStatement(sql);
+            statement.setTimestamp(1, new Timestamp(cal.getTimeInMillis()));
+            ResultSet resultSet = statement.executeQuery();
+
+            while (resultSet.next()) {
+                files.add(UserFileMapper.map(resultSet));
+            }
+
+        } catch (SQLException sqlException) {
+            sqlException.printStackTrace();
+        }
+
         return files;
     }
 
@@ -209,16 +253,25 @@ public class FileDAO extends AbstractDAO {
         try {
             connection = this.getConnection();
 
-            PreparedStatement statement = connection.prepareStatement("UPDATE files SET created = ? WHERE fileid = ?");
+            PreparedStatement statement = connection.prepareStatement("UPDATE file_metadata_table SET date_created = ?, last_accessed = ?, last_modified = ?, file_scope = " +
+                    "?, procedure_phase = ? " +
+                    "  WHERE id = ?");
             statement.setTimestamp(1, fileMetadata.getCreated());
-            statement.setObject(2, java.util.UUID.fromString(fileMetadata.getFileid()));
+            statement.setTimestamp(2, fileMetadata.getLastAccessed());
+            statement.setTimestamp(3, fileMetadata.getLastmodified());
+            statement.setString(4, fileMetadata.getFiletype());
+            statement.setString(5, fileMetadata.getPhase().toString());
+            statement.setObject(6, java.util.UUID.fromString(fileMetadata.getFileid()));
 
             count = statement.executeUpdate();
         } catch (SQLException sqlException) {
-            archionRequest.getResponseObject().addDebug("SQLException", sqlException.getMessage());
+            sqlException.printStackTrace();
+            if (archionRequest != null) {
+                archionRequest.getResponseObject().addDebug("SQLException", sqlException.getMessage());
+            }
         }
 
-        if (count > 0 && !archionRequest.getResponseObject().hasType(ArchionNotification.NotificationType.error)) {
+        if (count > 0) {
             return this.retrieve(archionRequest, fileMetadata.getFileid());
         }
         return null;
@@ -247,7 +300,7 @@ public class FileDAO extends AbstractDAO {
     }
 
     public Integer deleteFileById(String id) throws SQLException {
-        PreparedStatement statement = connection.prepareStatement("DELETE FROM files WHERE fileid = ?");
+        PreparedStatement statement = connection.prepareStatement("DELETE FROM file_metadata_table WHERE id = ?");
         statement.setObject(1, java.util.UUID.fromString(id));
         return statement.executeUpdate();
     }

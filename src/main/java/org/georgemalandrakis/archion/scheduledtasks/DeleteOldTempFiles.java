@@ -7,7 +7,7 @@ import org.georgemalandrakis.archion.core.ArchionConstants;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 
-@DelayStart("15s")
+@DelayStart("25s")
 @Every("24h")
 public class DeleteOldTempFiles extends Job {
 
