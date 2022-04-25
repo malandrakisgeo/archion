@@ -49,7 +49,7 @@ public class FileService {
         fileMetadata.setUserid(archionRequest.getUserObject().getId());
 
         String sha1_hash = FileUtil.calculate_SHA1(new FileInputStream(file));
-        if(!purpose.contentEquals("test") && this.fileDao.file_exists(fileMetadata.getUserid(), sha1_hash)){
+        if (!purpose.contentEquals("test") && this.fileDao.file_exists(fileMetadata.getUserid(), sha1_hash)) {
             archionRequest.getResponseObject().addError(FILE_ALREADY_EXISTS, sha1_hash);
             return archionRequest;
         }
@@ -110,15 +110,15 @@ public class FileService {
     }
 
     public byte[] getFile(FileMetadata fileMetadata) {
-        //TODO: Make sure that the FileMetadata is up-to-date before calling this function
+        //TODO: Make sure that the FileMetadata is up-to-date before this function is called
         byte[] file = null;
         boolean resaveLocally = false;
         fileMetadata.setLastAccessed(new Timestamp(System.currentTimeMillis()));
 
         try {
-            if (fileMetadata.getPhase().equals(FileProcedurePhase.LOCAL_MACHINE_STORED)) {
+            if (fileMetadata.getPhase().equals(FileProcedurePhase.LOCAL_MACHINE_STORED) || fileMetadata.getPhase().equals(FileProcedurePhase.CLOUD_SERVICE_STORED)) {
                 file = localMachineHandler.retrieveFile(fileMetadata.getFileid()); //Retrieve from local machine if recently accessed.
-            } else if (fileMetadata.getPhase().equals(FileProcedurePhase.CLOUD_SERVICE_STORED) || fileMetadata.getPhase().equals(FileProcedurePhase.LOCAL_MACHINE_REMOVED)) {
+            } else if (fileMetadata.getPhase().equals(FileProcedurePhase.LOCAL_MACHINE_REMOVED)) {
                 file = cloudHandler.downloadFile(fileMetadata.getFileid());
                 resaveLocally = true;
             }
@@ -158,6 +158,13 @@ public class FileService {
                 archionRequest.getResponseObject().addError("Error", ArchionConstants.ERROR_SAVING_LOCALLY, ArchionConstants.ERROR_SAVING_LOCALLY_NUM);
             }
         }
+
+        try {
+            fileinputStream.close(); //prevent memory leak
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         return archionRequest;
 
     }
@@ -187,11 +194,11 @@ public class FileService {
         1. To add the timestamp of the creation after the successful creation in the cloud and the local machine
         2. To store information about the procedure phase during which an error occurred (e.g. while uploading to the cloud).
      */
-    public ArchionRequest update(ArchionRequest archionRequest ) {
+    public ArchionRequest update(ArchionRequest archionRequest) {
         FileMetadata fileMetadata = archionRequest.getResponseObject().getFileMetadata();
         //TODO: If there is some error when creating the db entry, there will be a second error here too.
         try {
-             fileMetadata = fileDao.update(archionRequest, fileMetadata);
+            fileMetadata = fileDao.update(archionRequest, fileMetadata);
         } catch (Exception e) {
             e.printStackTrace();
             archionRequest.getResponseObject().addError("Error", ArchionConstants.FAILED_UPDATE_MESSAGE, ArchionConstants.FAILED_UPDATE_NUM);

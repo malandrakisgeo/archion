@@ -34,8 +34,6 @@ public class CloudHandler {
 		amazonsecretkey = connectionObject.getAmazonSecretkey();
 		credentials = new BasicAWSCredentials(amazonaccesskey, amazonsecretkey);
 		sClient = AmazonS3ClientBuilder.standard().withRegion(clientRegion).withCredentials(new AWSStaticCredentialsProvider(credentials)).build();
-		System.out.println("Running!");
-		System.out.println(amazonaccesskey);
 	}
 
 

@@ -37,7 +37,7 @@ public class FileDAO extends AbstractDAO {
             if (resultSet.next()) {
                 return true;
             }
-
+            connection.close(); //prevents memory leak
         } catch (SQLException sqlException) {
             sqlException.printStackTrace();
         }
@@ -78,7 +78,7 @@ public class FileDAO extends AbstractDAO {
                 archionRequest.getResponseObject().addError("SQL Error", ArchionConstants.FILE_CREATION_ERROR_MESSAGE);
                 return null;
             }
-
+            connection.close();
         } catch (SQLException sqlException) {
             sqlException.printStackTrace();
             archionRequest.getResponseObject().addDebug("SQLException", sqlException.getMessage());
@@ -100,7 +100,7 @@ public class FileDAO extends AbstractDAO {
             if (resultSet.next()) {
                 userile = UserFileMapper.map(resultSet);
             }
-
+            connection.close();
         } catch (SQLException sqlException) {
             sqlException.printStackTrace();
             if (archionRequest != null) {
@@ -133,7 +133,7 @@ public class FileDAO extends AbstractDAO {
                 usf = UserFileMapper.map(resultSet);
                 fileList.add(usf);
             }
-
+            connection.close();
         } catch (SQLException sqlException) {
             sqlException.printStackTrace();
             archionRequest.getResponseObject().addDebug("SQLException", sqlException.getMessage());
@@ -157,7 +157,7 @@ public class FileDAO extends AbstractDAO {
             while (resultSet.next()) {
                 files.add(UserFileMapper.map(resultSet));
             }
-
+            connection.close();
         } catch (SQLException sqlException) {
             archionRequest.getResponseObject().addDebug("SQLException", sqlException.getMessage());
         }
@@ -215,7 +215,7 @@ public class FileDAO extends AbstractDAO {
             while (resultSet.next()) {
                 files.add(UserFileMapper.map(resultSet));
             }
-
+            connection.close();
         } catch (SQLException sqlException) {
             sqlException.printStackTrace();
         }
@@ -239,7 +239,7 @@ public class FileDAO extends AbstractDAO {
             while (resultSet.next()) {
                 files.add(UserFileMapper.map(resultSet));
             }
-
+            connection.close();
         } catch (SQLException sqlException) {
             sqlException.printStackTrace();
         }
@@ -264,6 +264,7 @@ public class FileDAO extends AbstractDAO {
             statement.setObject(6, java.util.UUID.fromString(fileMetadata.getFileid()));
 
             count = statement.executeUpdate();
+            connection.close();
         } catch (SQLException sqlException) {
             sqlException.printStackTrace();
             if (archionRequest != null) {
@@ -284,7 +285,7 @@ public class FileDAO extends AbstractDAO {
         try {
             connection = this.getConnection();
             retVal = this.deleteFileById(fileMetadata.getFileid());
-
+            connection.close();
         } catch (SQLException sqlException) {
             archionRequest.getResponseObject().addDebug("SQLException", sqlException.getMessage());
             archionRequest.getResponseObject().addError("Error", ArchionConstants.FAILED_REMOVAL_FROM_DB);
