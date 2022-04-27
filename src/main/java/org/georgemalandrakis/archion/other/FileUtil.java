@@ -52,4 +52,10 @@ public class FileUtil {
 
         return archionRequest;
     }
+
+    //Needed mainly for testability, since Mockito cannot mock a local object of a function
+    // //TODO: Something about that
+    public static File createFile(String filelocation){
+        return new File(filelocation);
+    }
 }

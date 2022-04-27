@@ -4,8 +4,10 @@ import org.georgemalandrakis.archion.core.ConnectionManager;
 import org.georgemalandrakis.archion.exception.FileDeletionException;
 import org.georgemalandrakis.archion.model.FileMetadata;
 import org.georgemalandrakis.archion.model.FileProcedurePhase;
+import org.georgemalandrakis.archion.other.FileUtil;
 
 import java.io.*;
+
 
 public class LocalMachineHandler {
     String localFileFolder;
@@ -21,7 +23,7 @@ public class LocalMachineHandler {
     public FileMetadata storeFile(FileMetadata fileMetadata, InputStream data) {
         String fileLocationAndName = this.localFileFolder + fileMetadata.getFileid();
         try {
-            File file = new File(fileLocationAndName);
+            File file = FileUtil.createFile(fileLocationAndName);
             OutputStream outStream = new FileOutputStream(file);
             outStream.write(data.readAllBytes()); //Java 9 TODO:fix
             //outStream.flush(); //TODO:fix
@@ -43,7 +45,7 @@ public class LocalMachineHandler {
 
         String fileLocationAndName = this.localFileFolder + fileMetadata.getFileid();
         try {
-            File file = new File(fileLocationAndName);
+            File file = FileUtil.createFile(fileLocationAndName);
             boolean success = file.delete();
             if(success){
                 fileMetadata.setPhase(FileProcedurePhase.LOCAL_MACHINE_REMOVED);
@@ -57,5 +59,7 @@ public class LocalMachineHandler {
 
         return fileMetadata;
     }
+
+
 
 }
