@@ -5,6 +5,7 @@ import org.georgemalandrakis.archion.core.ArchionRequest;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.security.MessageDigest;
 import java.util.zip.CRC32;
 
@@ -22,7 +23,7 @@ public class FileUtil {
     }
 
     //Found online! TODO: Check for some better way
-    public static String calculate_SHA1(FileInputStream fis) throws Exception {
+    public static String calculate_SHA1(File file) throws Exception {
         /*MessageDigest digest = MessageDigest.getInstance("SHA-1");
         int n = 0;
         byte[] buffer = new byte[8192]; //Returns different digest from DigestUtils.
@@ -33,7 +34,7 @@ public class FileUtil {
                 digest.update(buffer, 0, n);
             }
         }*/
-
+        FileInputStream fis = new FileInputStream(file);
         return DigestUtils.sha1Hex(fis);
     }
 
@@ -57,5 +58,11 @@ public class FileUtil {
     // //TODO: Something about that
     public static File createFile(String filelocation){
         return new File(filelocation);
+    }
+
+    //Needed mainly for testability, since Mockito cannot mock a local object of a function
+    // //TODO: Something about that
+    public static FileInputStream createFileInputStream(File file) throws FileNotFoundException {
+        return new FileInputStream(file);
     }
 }

@@ -63,6 +63,11 @@ public class DeleteGeneral {
         }
     }
 
+    //TODO: The necessary modifications to make it testable without changing remove() to public
+    public void removeTest(FileMetadata file) throws Exception{
+        this.remove(file);
+    }
+
     private void remove(FileMetadata file) throws Exception {
         FileMetadata tempFileMetadata;
         file.getFileid();

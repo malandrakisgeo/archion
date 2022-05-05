@@ -12,6 +12,7 @@ import org.georgemalandrakis.archion.other.FileUtil;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.sql.SQLException;
@@ -48,7 +49,7 @@ public class FileService {
         fileMetadata.setSizeinkbs(String.valueOf(Files.size(file.toPath()) / 1024));
         fileMetadata.setUserid(archionRequest.getUserObject().getId());
 
-        String sha1_hash = FileUtil.calculate_SHA1(new FileInputStream(file));
+        String sha1_hash = FileUtil.calculate_SHA1(file);
         if (!purpose.contentEquals("test") && this.fileDao.file_exists(fileMetadata.getUserid(), sha1_hash)) {
             archionRequest.getResponseObject().addError(FILE_ALREADY_EXISTS, sha1_hash);
             return archionRequest;
@@ -92,7 +93,7 @@ public class FileService {
             return archionRequest;
         }
 
-        archionRequest = this.storeFile(archionRequest, new FileInputStream(file)); //Stores the file in the local machine & the cloud thereafter.
+        archionRequest = this.storeFile(archionRequest, file); //Stores the file in the local machine & the cloud thereafter.
 
         archionRequest.getResponseObject().getFileMetadata().setLastmodified(new Timestamp(System.currentTimeMillis()));//The metadata was modified in the storeFile() function.
         archionRequest = this.update(archionRequest); //Stores the modified metadata in the db, including the recent LastModified field.
@@ -140,7 +141,14 @@ public class FileService {
         return null;
     }
 
-    private ArchionRequest storeFile(ArchionRequest archionRequest, InputStream fileinputStream) {
+    private ArchionRequest storeFile(ArchionRequest archionRequest, File file) {
+        FileInputStream fileinputStream = null;
+        try {
+            fileinputStream = FileUtil.createFileInputStream(file);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+            return null;
+        }
         FileMetadata fileMetadata = archionRequest.getResponseObject().getFileMetadata();
         if (fileMetadata != null && fileinputStream != null) {
             FileMetadata tempMetadata = localMachineHandler.storeFile(fileMetadata, fileinputStream);
